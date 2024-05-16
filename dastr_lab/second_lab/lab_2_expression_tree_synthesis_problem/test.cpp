@@ -27,20 +27,19 @@
 
 //第一part可以直接照搬第一次实验的代码吗
 //但这个要换用树
-
-
-#include <stack>
 #include <iostream>
-#include <string> 
-#include <vector>
+#include <string>
 #include <queue>
+#include <stack>
 
 using namespace std;
 
 
+
+
 struct BTNode  //二叉链结点类
 {
-	string data;  //数据元素
+	string data;  //数据元素  //因为有符号也有多位的数字，所以用string
 	BTNode* lchild;  //左孩子结点
 	BTNode* rchild;  //右孩子结点
 	BTNode():lchild(NULL), rchild(NULL){}  //构造函数
@@ -58,6 +57,10 @@ public:
 	BTree()  //构造函数，创建一个空树
 	{
 		r = NULL;
+	}
+	BTree(BTNode* rr)  //构造函数
+	{
+		r = rr;
 	}
 
 	//销毁二叉树
@@ -109,7 +112,6 @@ void PerOrder(BTree& bt)  //先序遍历的递归算法
 {
 PerOrder1(bt.r);
 }
-
 //中序遍历算法
 void InOrder1(BTNode *b)  //被InOrder1函数调用
 {
@@ -124,7 +126,6 @@ void InOrder(BTree &bt)  //中序递归的遍历算法
 {
 InOrder1(bt.r);
 }
-
 //后序遍历的算法
 void PostOrder1(BTNode* b)
 {
@@ -140,13 +141,22 @@ void PostOrder(BTree &bt)   //后序遍历算法
 PostOrder1(bt.r);
 }
 
+//链栈的定义
+template <typename T>
+struct LinkNode
+{
+	T data;
+	LinkNode* next;
+
+	LinkNode() :next(NULL) {}
+	LinkNode(T d) :data(d), next(NULL) {}
+};
 
 class Express
 {
-
-public:
 	string exp;  //中缀表达式
 	string postexp;  //后缀表达式
+public:
 	Express(string str)
 	{
 		exp = str;
@@ -228,105 +238,147 @@ public:
 			postexp += e;
 		}
 	}
-
-    BTNode* GreateTree()
+	
+	int  GetValue()
 	{
-        BTree goaltree;
-		queue<BTNode*>opand;
-		BTNode* a,* b, *c, *d;
-		string ch;
-		int i = 1;
-        BTNode*node=new BTNode;
-        vector<BTNode*>newBTNode(1000,node);
-		while (i < postexp.length())  //对后缀表达式进行遍历
+		stack<int>opand;
+		int a, b, c, d;
+		char ch;
+		int i = 0;
+		while (i < postexp.length())
 		{
-            int j=0;
-			ch = postexp;
-			switch (ch[i])
+			ch = postexp[i];
+			switch (ch)
 			{
 			case '+':
-				a = opand.front(); opand.pop();
-				b = opand.front(); opand.pop();
-                newBTNode[j]->data="+";
-				newBTNode[j]->lchild=a;
-                newBTNode[j]->rchild=b;
-                opand.push(newBTNode[j]);
-                j++;
-                break;
+				a = opand.top(); opand.pop();
+				b = opand.top(); opand.pop();
+				c = a + b;
+				opand.push(c);
+				break;
 			case '-':
-				a = opand.front(); opand.pop();
-				b = opand.front(); opand.pop();
-                newBTNode[j]->data="-";
-				newBTNode[j]->lchild=a;
-                newBTNode[j]->rchild=b;
-                opand.push(newBTNode[j]);
-                j++;
-                break;
+				a = opand.top(); opand.pop();
+				b = opand.top(); opand.pop();
+				c = b - a;
+				opand.push(c);
+				break;
 			case '*':
-				a = opand.front(); opand.pop();
-				b = opand.front(); opand.pop();
-                newBTNode[j]->data="*";
-				newBTNode[j]->lchild=a;
-                newBTNode[j]->rchild=b;
-                opand.push(newBTNode[j]);
-                j++;
-                break;
+				a = opand.top(); opand.pop();
+				b = opand.top(); opand.pop();
+				c = b * a;
+				opand.push(c);
+				break;
 			case '/':
-				a = opand.front(); opand.pop();
-				b = opand.front(); opand.pop();
-                newBTNode[j]->data="/";
-				newBTNode[j]->lchild=a;
-                newBTNode[j]->rchild=b;
-                opand.push(newBTNode[j]);
-                j++;
-                break;
+				a = opand.top(); opand.pop();
+				b = opand.top(); opand.pop();
+				c = b / a;
+				opand.push(c);
+				break;
 			default:  //如果是数字 需要考虑二位数三位数的情况
-                string tem;
-                char x=ch[i];
-				while (x >= '0' && x <= '9')
-				{   
-                    x=ch[i];    
-                    if(x >= '0' && x <= '9')
-                    {    tem+=x;
-                    i++;
-                    }
-                    
+				d = 0;
+				while (ch >= '0' && ch <= '9')
+				{
+					d = 10 * d + (ch - '0');
+					i++;
+					ch = postexp[i];
 				}
-                newBTNode[j]->data=tem;
-				opand.push(newBTNode[j]);
-                j++;
+				opand.push(d);
 				break;
 			}
 			i++;
 		}
-        BTNode* tem=opand.front();
-        return tem;
+		return opand.top();
 	}
-//我也不知道这个结果对不对
+	//发现建树的逻辑是，如果当前的后缀表达式是数字，就创建根结点然后进栈，如果是符号，那就出栈当前最上面的两个根结点，分别作为左右结点，然后把这个结点进栈
+	BTree CreateTree()
+	{
+		stack<BTNode* >qu;  //需要一个用于存放根结点的栈
+		int i=0;
+		char ch;
+		while(i<postexp.length())  //对后缀表达式进行遍历
+		{
+			ch=postexp[i];
+			if(ch=='+')
+			{
+				BTNode* pr=qu.top(); qu.pop();  //最上面的是右结点
+				BTNode* pl=qu.top(); qu.pop();  //然后是左节点
+				BTNode* tem=new BTNode("+");
+				tem->lchild=pl;
+				tem->rchild=pr;
+				qu.push(tem);
+			}
+			else if(ch=='-')
+			{				
+				BTNode* pr=qu.top(); qu.pop();  //最上面的是右结点
+				BTNode* pl=qu.top(); qu.pop();  //然后是左节点
+				BTNode* tem=new BTNode("-");
+				tem->lchild=pl;
+				tem->rchild=pr;
+				qu.push(tem);
+			}
+			else if(ch=='*')
+			{
+				BTNode* pr=qu.top(); qu.pop();  //最上面的是右结点
+				BTNode* pl=qu.top(); qu.pop();  //然后是左节点
+				BTNode* tem=new BTNode("*");
+				tem->lchild=pl;
+				tem->rchild=pr;
+				qu.push(tem);
+			}
+			else if(ch=='/')
+			{
+				BTNode* pr=qu.top(); qu.pop();  //最上面的是右结点
+				BTNode* pl=qu.top(); qu.pop();  //然后是左节点
+				BTNode* tem=new BTNode("/");
+				tem->lchild=pl;
+				tem->rchild=pr;
+				qu.push(tem);
+			}
+			else if(ch==' '){
+			}
+			//遇到空格就直接跳过去			
+			else//那剩下的就是数字和#  如果是数字就直接进栈
+			{
+				string d;
+				while (ch >= '0' && ch <= '9')  //如果输入的一直是数字字符
+				{
+					d += ch;  //提取全部连续的数字字符
+					i++;
+					if (i < postexp.length())
+						ch = postexp[i];
+					else
+						break;
+				}
+				d += "#";  //然后加一个#进行分隔
+				BTNode* tem=new BTNode(d);
+				qu.push(tem);
+			}
+			i++;
+		}
+		BTree tem(qu.top());
+		return tem;
+	}
 };
 
 
-//现在是已经可以转化为后缀表达式了
+
 int main()
 {
 	string str;
 	//= "(56-20)/(4+2)";
 	//getline(cin, str, ' =' );
-    getline(cin >> ws, str, '='); // 读取到 '=' 为止，并忽略开头的空白字符
+	getline(cin, str, '=');  //在cin中输入到 = 为止
 	Express obj(str);  
 	// cout << "中缀表达式：" << str << endl;
 	// cout << "转化为后缀为：" << endl;
 	obj.Trans();
-    BTNode* Node=new BTNode;
-    Node=obj.GreateTree();
-    BTree Tree;
-    Tree.r=Node;
-    PerOrder(Tree);  cout<<endl;
-    InOrder(Tree);  cout<<endl;
-    PostOrder(Tree);  cout<<endl;
-    LevelOrder(Tree);  cout<<endl;
-
-
-    
-	return 0;
+	// cout << obj.getpostexp() << endl;  //前面哪来的两个空格？
+	// cout << "求值结果为" << endl;
+	BTree tree=obj.CreateTree();  //建树
+	PerOrder(tree); cout<<endl;
+	InOrder(tree); cout<<endl;
+	PostOrder(tree); cout<<endl;
+	LevelOrder(tree); cout<<endl;	
+	cout << obj.GetValue() << endl;
+	 return 0;
 }
